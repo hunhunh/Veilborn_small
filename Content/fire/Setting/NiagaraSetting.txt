@@ -1,0 +1,5 @@
+Flames - M_Fire_inst_ADD
+
+Smokes - M_Fire_inst_AB
+
+Embers - M_Fire_inst_ADD
