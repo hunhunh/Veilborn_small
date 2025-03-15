@@ -125,11 +125,11 @@ public:
 
 	/*AWeaponActor* GetWeapon(){return EquippeddWeapon;}*/
 	
-    /*void CameraBoomIn();
+    void CameraBoomIn();
 
 	void CameraBoomOut();
 
-	void Attack();
+	/*void Attack();
 
 	void ApplyDamage(AActor* Actor, float Damage);*/
 	

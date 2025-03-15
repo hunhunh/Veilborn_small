@@ -28,7 +28,7 @@ APlayerCharacter::APlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(0.5f, 1.2f);
+	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -137,16 +137,16 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-//void APlayerCharacter::CameraBoomIn()
-//{
-//	CameraBoom->TargetArmLength = FMath::Clamp(CameraBoom->TargetArmLength - 100.f, 300.f, 800.f);
-//}
-//
-//void APlayerCharacter::CameraBoomOut()
-//{
-//	CameraBoom->TargetArmLength = FMath::Clamp(CameraBoom->TargetArmLength + 100.f, 300.f, 800.f);
-//}
-//
+void APlayerCharacter::CameraBoomIn()
+{
+	CameraBoom->TargetArmLength = FMath::Clamp(CameraBoom->TargetArmLength - 100.f, 300.f, 800.f);
+}
+
+void APlayerCharacter::CameraBoomOut()
+{
+	CameraBoom->TargetArmLength = FMath::Clamp(CameraBoom->TargetArmLength + 100.f, 300.f, 800.f);
+}
+
 //void APlayerCharacter::Attack()
 //{
 //	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
@@ -154,7 +154,7 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 //		AnimInstance->Montage_Play(AttackAnim);
 //	}
 //}
-//
+
 //void APlayerCharacter::ApplyDamage(AActor* Actor, float Damage)
 //{
 //	if (AEnemyBase* Enemy = Cast<AEnemyBase>(Actor))
@@ -198,9 +198,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		//EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		
 		//시점변경
-		//EnhancedInputComponent->BindAction(CamaraInAction, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraBoomIn);
+		EnhancedInputComponent->BindAction(CamaraInAction, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraBoomIn);
 
-		//EnhancedInputComponent->BindAction(CamaraOutAction, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraBoomOut);
+		EnhancedInputComponent->BindAction(CamaraOutAction, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraBoomOut);
 
 		//채집
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacter::BeginInteract);
