@@ -28,7 +28,7 @@ APlayerCharacter::APlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(30.0f, 86.0f);
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -41,7 +41,7 @@ APlayerCharacter::APlayerCharacter()
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
-	GetCharacterMovement()->JumpZVelocity = 700.f;
+	GetCharacterMovement()->JumpZVelocity = 550.f;
 	GetCharacterMovement()->AirControl = 0.35f;
 	GetCharacterMovement()->MaxWalkSpeed = 500.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
@@ -116,6 +116,23 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 	
 			// get right vector 
 			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+			float Speed = 400.f;
+
+			if (MovementVector.Y < 0)
+			{
+				Speed = 150.f;
+			}
+			else if (MovementVector.X != 0)
+			{
+				Speed = 175.f;
+			}
+			else if (MovementVector.X != 0 && MovementVector.Y > 0)
+			{
+				Speed = 300.f;
+			}
+
+			GetCharacterMovement()->MaxWalkSpeed = Speed;
 
 			// add movement 
 			AddMovementInput(ForwardDirection, MovementVector.Y);

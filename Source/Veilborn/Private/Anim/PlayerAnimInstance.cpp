@@ -27,7 +27,7 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	if (IsValid(PlayerCharacter))
 	{
-		FVector Velocity = CharacterMovement->Velocity;
+		Velocity = CharacterMovement->Velocity;
 		FRotator Rotation = PlayerCharacter->GetActorRotation();
 		FVector UnrotateVector = Rotation.UnrotateVector(Velocity);
 
@@ -35,6 +35,7 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Horizontal = UnrotateVector.Y;
 
 		Speed = PlayerCharacter->GetVelocity().Size2D();
+		Direction = UAnimInstance::CalculateDirection(Velocity, Rotation);
 
 		auto Acceleration = CharacterMovement->GetCurrentAcceleration();
 		bShouldMove = Speed > 3.f && Acceleration != FVector::Zero();
