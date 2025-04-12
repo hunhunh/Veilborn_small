@@ -4,6 +4,7 @@
 #include "Anim/PlayerAnimInstance.h"
 #include "Player/PlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 void UPlayerAnimInstance::NativeInitializeAnimation()
 {
@@ -38,9 +39,21 @@ void UPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Direction = UAnimInstance::CalculateDirection(Velocity, Rotation);
 
 		auto Acceleration = CharacterMovement->GetCurrentAcceleration();
-		bShouldMove = Speed > 3.f && Acceleration != FVector::Zero();
+		bShouldMove = Speed > 0.3f && Acceleration != FVector::Zero();
 
 		bIsFalling = CharacterMovement->IsFalling();
+
+		AimRotation = PlayerCharacter->GetBaseAimRotation();
+		FRotator RotFromX = UKismetMathLibrary::MakeRotFromX(Velocity);
+
+		FRotator DeltaRotation = AimRotation - RotFromX;
+		DeltaRotation.Normalize();
+
+		YawOffset = DeltaRotation.Yaw;
+	
+		
+
+		bIsRunning = PlayerCharacter->IsRunning();
 	}
 
 }

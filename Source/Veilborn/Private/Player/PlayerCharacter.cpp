@@ -20,6 +20,7 @@
 #include "UI/VBHUD.h"
 #include "Inventory/InventoryComponent.h"
 #include "Items/Pickup.h"
+#include "Player/ComboActionData.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -59,6 +60,8 @@ APlayerCharacter::APlayerCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 	
+	bIsRun = false;
+
 	//상호 작용
 	
 	InteractionCheckFrequency = 0.1;
@@ -117,20 +120,40 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 			// get right vector 
 			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-			float Speed = 400.f;
+			float Speed = 300.f; //직선
 
-			if (MovementVector.Y < 0)
+			if (bIsRun)
 			{
-				Speed = 150.f;
+				Speed = 600.f;
+				if (MovementVector.Y < 0) // 뒤로 가기
+				{
+					Speed = 300.f;
+				}
+				else if (MovementVector.X != 0) //좌우
+				{
+					Speed = 300.f;
+					if (MovementVector.Y > 0)
+					{
+						Speed = 600.f;
+					}
+				}
 			}
-			else if (MovementVector.X != 0)
+			else
 			{
-				Speed = 175.f;
+				if (MovementVector.Y < 0) // 뒤로 가기
+				{
+					Speed = 150.f;
+				}
+				else if (MovementVector.X != 0) //좌우
+				{
+					Speed = 175.f;
+				}
+				else if (MovementVector.X != 0 && MovementVector.Y > 0) //대각으로 가기
+				{
+					Speed = 200.f;
+				}
 			}
-			else if (MovementVector.X != 0 && MovementVector.Y > 0)
-			{
-				Speed = 300.f;
-			}
+			
 
 			GetCharacterMovement()->MaxWalkSpeed = Speed;
 
@@ -154,6 +177,16 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void APlayerCharacter::Run(const FInputActionValue& Value)
+{
+	bIsRun = true;
+}
+
+void APlayerCharacter::RunStop(const FInputActionValue& Value)
+{
+	bIsRun = false;
+}
+
 void APlayerCharacter::CameraBoomIn()
 {
 	CameraBoom->TargetArmLength = FMath::Clamp(CameraBoom->TargetArmLength - 100.f, 300.f, 800.f);
@@ -164,13 +197,91 @@ void APlayerCharacter::CameraBoomOut()
 	CameraBoom->TargetArmLength = FMath::Clamp(CameraBoom->TargetArmLength + 100.f, 300.f, 800.f);
 }
 
-//void APlayerCharacter::Attack()
-//{
-//	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-//	{
-//		AnimInstance->Montage_Play(AttackAnim);
-//	}
-//}
+void APlayerCharacter::Attack()
+{
+	ProcessComboCommand();
+}
+
+void APlayerCharacter::ProcessComboCommand()
+{
+	if (CurrentCombo == 0)
+	{
+		ComboActionBegin();
+		return;
+	}
+
+	if (!ComboTimerHandle.IsValid())
+	{
+		HasNextComboCommand = false;
+	}
+	else
+	{
+		HasNextComboCommand = true;
+	}
+}
+
+void APlayerCharacter::ComboActionBegin()
+{
+	CurrentCombo = 1;
+
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+	const float AttackSpeedRate = 1.0f;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	
+	
+	AnimInstance->Montage_Play(AttackAnim,AttackSpeedRate);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &APlayerCharacter::ComboActionEnd);
+	
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackAnim);
+
+	ComboTimerHandle.Invalidate();
+	SetComboCheckTimer();
+}
+
+void APlayerCharacter::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
+{
+	ensure(CurrentCombo != 0);
+	CurrentCombo = 0;
+
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+void APlayerCharacter::SetComboCheckTimer()
+{
+	int32 ComboIdx = CurrentCombo - 1;
+	ensure(ComboActionData->EffectiveFrameCount.IsValidIndex(ComboIdx));
+
+	const float AttackSpeedRate = 1.0f;
+	float ComboEffectiveTime = (ComboActionData->EffectiveFrameCount[ComboIdx] / ComboActionData->FrameRate) / AttackSpeedRate;
+	
+	if (ComboEffectiveTime > 0.0f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &APlayerCharacter::ComboCheck, ComboEffectiveTime, false);
+	}
+
+
+}
+
+void APlayerCharacter::ComboCheck()
+{
+	ComboTimerHandle.Invalidate();
+	
+	if (HasNextComboCommand)
+	{
+		UAnimInstance* AnimInstaance = GetMesh()->GetAnimInstance();
+
+		CurrentCombo = FMath::Clamp(CurrentCombo + 1, 1, ComboActionData->MaxComboCount);
+		FName NextSection = *FString::Printf(TEXT("%s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
+		AnimInstaance->Montage_JumpToSection(NextSection, AttackAnim);
+
+		SetComboCheckTimer();
+		HasNextComboCommand = false;
+	}
+}
 
 //void APlayerCharacter::ApplyDamage(AActor* Actor, float Damage)
 //{
@@ -189,6 +300,8 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		PerformInteractionCheck();
 	}
+
+	
 }
 
 // Called to bind functionality to input
@@ -211,8 +324,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 
+		//Running
+		EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Started, this, &APlayerCharacter::Run);
+		EnhancedInputComponent->BindAction(RunAction, ETriggerEvent::Completed, this, &APlayerCharacter::RunStop);
 		
-		//EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
+		//Attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		
 		//시점변경
 		EnhancedInputComponent->BindAction(CamaraInAction, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraBoomIn);

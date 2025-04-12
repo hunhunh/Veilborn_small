@@ -92,7 +92,15 @@ class VEILBORN_API APlayerCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CamaraOutAction;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* RunAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* AttackAnim;
+
+	uint8 bIsRun : 1;
+
 public:
 	// Sets default values for this character's properties
 	APlayerCharacter();
@@ -100,10 +108,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FPlayerStat Stat;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-	UAnimMontage* AttackAnim;
-	
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack", Meta =(AllowPrivateAccess="true"))
+	TObjectPtr<class UComboActionData> ComboActionData;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -115,6 +123,13 @@ protected:
 
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TSubclassOf<AWeaponActor> WeaponClass;*/
+
+	void Run(const FInputActionValue& Value);
+
+	void RunStop(const FInputActionValue& Value);
+
+public:
+	FORCEINLINE bool IsRunning() const { return bIsRun; };
 
 private:
 
@@ -129,9 +144,25 @@ public:
 
 	void CameraBoomOut();
 
-	/*void Attack();
+	//Attack
 
-	void ApplyDamage(AActor* Actor, float Damage);*/
+	void Attack();
+
+	void ProcessComboCommand();
+
+	void ComboActionBegin();
+
+	void ComboActionEnd(class UAnimMontage* TargetMontage, bool IsProperlyEnded);
+
+	void SetComboCheckTimer();
+
+	void ComboCheck();
+
+	int32 CurrentCombo = 0;
+	FTimerHandle ComboTimerHandle;
+	bool HasNextComboCommand = false;
+
+	//void ApplyDamage(AActor* Actor, float Damage);
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
