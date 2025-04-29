@@ -7,7 +7,7 @@
 #include "Interface/InteractionInterface.h"
 #include "PlayerCharacter.generated.h"
 
-class USpringArmComponent;
+class UVBSpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
@@ -61,12 +61,12 @@ class VEILBORN_API APlayerCharacter : public ACharacter
 	
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
+	UVBSpringArmComponent* CameraBoom;
 
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
+
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
@@ -101,6 +101,8 @@ class VEILBORN_API APlayerCharacter : public ACharacter
 
 	uint8 bIsRun : 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* DeadAnim;
 public:
 	// Sets default values for this character's properties
 	APlayerCharacter();
@@ -163,6 +165,13 @@ public:
 	bool HasNextComboCommand = false;
 
 	//void ApplyDamage(AActor* Actor, float Damage);
+
+
+	//Dead
+	UFUNCTION(BlueprintCallable)
+	void SetDead();
+
+	void PlayDeadAnimation();
 	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

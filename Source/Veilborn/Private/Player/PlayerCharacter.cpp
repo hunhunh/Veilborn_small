@@ -21,6 +21,7 @@
 #include "Inventory/InventoryComponent.h"
 #include "Items/Pickup.h"
 #include "Player/ComboActionData.h"
+#include "Player/VBSpringArmComponent.h"
 
 // Sets default values
 APlayerCharacter::APlayerCharacter()
@@ -50,16 +51,22 @@ APlayerCharacter::APlayerCharacter()
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom = CreateDefaultSubobject<UVBSpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
+	CameraBoom->bDoCollisionTest = true;
+	CameraBoom->ProbeSize = 15.f;
+
+	
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 	
+
+
 	bIsRun = false;
 
 	//상호 작용
@@ -81,6 +88,8 @@ void APlayerCharacter::BeginPlay()
 	//Add Input Mapping Context
 	if (AVBPlayerController* PlayerController = Cast<AVBPlayerController>(Controller))
 	{
+		EnableInput(PlayerController);
+
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
@@ -199,7 +208,10 @@ void APlayerCharacter::CameraBoomOut()
 
 void APlayerCharacter::Attack()
 {
-	ProcessComboCommand();
+	if (!bIsRun && !(GetCharacterMovement()->IsFalling()))
+	{
+		ProcessComboCommand();
+	}
 }
 
 void APlayerCharacter::ProcessComboCommand()
@@ -224,8 +236,6 @@ void APlayerCharacter::ComboActionBegin()
 {
 	CurrentCombo = 1;
 
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-
 	const float AttackSpeedRate = 1.0f;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -247,7 +257,6 @@ void APlayerCharacter::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 	ensure(CurrentCombo != 0);
 	CurrentCombo = 0;
 
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 
 void APlayerCharacter::SetComboCheckTimer()
@@ -291,6 +300,25 @@ void APlayerCharacter::ComboCheck()
 //	}
 //}
 
+void APlayerCharacter::SetDead()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	PlayDeadAnimation();
+}
+
+void APlayerCharacter::PlayDeadAnimation()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->StopAllMontages(0.0f);
+	AnimInstance->Montage_Play(DeadAnim, 1.0f);
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		DisableInput(PlayerController);
+	}
+}
+
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
@@ -301,7 +329,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 		PerformInteractionCheck();
 	}
 
-	
+
 }
 
 // Called to bind functionality to input
