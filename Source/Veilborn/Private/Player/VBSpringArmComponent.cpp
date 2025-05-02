@@ -5,15 +5,13 @@
 
 UVBSpringArmComponent::UVBSpringArmComponent()
 {
-	MinArmLength = 150.f;
+	MinArmLength = 400.f;
 }
 
 void UVBSpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
 {
+	// 먼저 부모(SpringArm)의 기본 충돌 처리
 	Super::UpdateDesiredArmLocation(bDoTrace, bDoLocationLag, bDoRotationLag, DeltaTime);
 
-	if (TargetArmLength < MinArmLength)
-	{
-		TargetArmLength = MinArmLength;
-	}
+	
 }
